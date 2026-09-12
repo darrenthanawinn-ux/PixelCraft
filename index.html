@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelCraft Ultimate: Masterclass Edition</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+        #game-wrapper {
+            position: relative;
+            box-shadow: 0 35px 80px rgba(0,0,0,0.99);
+            border: 4px solid #334155;
+            border-radius: 16px;
+            background: #020617;
+            overflow: hidden;
+            width: 1280px;
+            height: 760px;
+        }
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            background-color: #090d16;
+        }
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2, 6, 23, 0.985);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 100; text-align: center; padding: 30px;
+        }
+        h1 { color: #f59e0b; margin-bottom: 8px; font-size: 42px; text-shadow: 3px 3px #78350f; letter-spacing: 2px; }
+        p { color: #94a3b8; font-size: 13px; max-width: 680px; line-height: 1.6; }
+        .btn {
+            background: linear-gradient(to bottom, #d97706, #b45309);
+            color: white; border: 2px solid #fbbf24;
+            padding: 12px 32px; font-family: 'Courier New', Courier, monospace;
+            font-weight: bold; font-size: 16px; border-radius: 6px; cursor: pointer;
+            margin-top: 20px; box-shadow: 0 4px 20px rgba(217, 119, 6, 0.6);
+            transition: all 0.2s;
+        }
+        .btn:hover { background: linear-gradient(to bottom, #f59e0b, #d97706); transform: scale(1.06); }
+        
+        .class-grid { display: flex; gap: 20px; margin-top: 25px; }
+        .class-card {
+            background: #1e293b; border: 2px solid #334155; border-radius: 10px;
+            padding: 20px; width: 220px; cursor: pointer; text-align: left; transition: all 0.2s;
+        }
+        .class-card:hover, .class-card.selected { border-color: #f59e0b; background: #273548; transform: translateY(-5px); }
+        .class-card h3 { margin: 0 0 8px 0; color: #f59e0b; font-size: 18px; }
+        .class-card div { font-size: 11px; color: #cbd5e1; margin-bottom: 5px; }
+
+        #hud-top {
+            position: absolute; top: 12px; left: 12px; right: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(15, 23, 42, 0.95); padding: 8px 18px; border-radius: 8px;
+            font-size: 12px; font-weight: bold; border: 1px solid #334155; pointer-events: none; z-index: 10;
+        }
+        .bar-container { display: flex; align-items: center; gap: 6px; }
+        .bar-bg { width: 95px; height: 10px; background: #334155; border-radius: 5px; overflow: hidden; border: 1px solid #475569; }
+        #hp-fill { width: 100%; height: 100%; background: #ef4444; transition: width 0.2s; }
+        #stamina-fill { width: 100%; height: 100%; background: #3b82f6; transition: width 0.2s; }
+        #hunger-fill { width: 100%; height: 100%; background: #10b981; transition: width 0.2s; }
+
+        #toolbar {
+            position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 6px; background: rgba(15, 23, 42, 0.95); padding: 8px;
+            border-radius: 8px; border: 1px solid #334155; z-index: 10;
+        }
+        .tool-slot {
+            width: 48px; height: 48px; border: 2px solid #475569; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; font-size: 9px; background: #1e293b; color: #94a3b8;
+            border-radius: 6px; cursor: pointer; text-align: center; position: relative;
+        }
+        .tool-slot.active { border-color: #f59e0b; color: #fff; background: #334155; }
+        .tool-slot span { font-size: 11px; font-weight: bold; }
+
+        #chat-panel {
+            position: absolute; bottom: 78px; left: 12px; width: 320px; height: 160px;
+            background: rgba(15, 23, 42, 0.92); border: 1px solid #334155; border-radius: 8px;
+            padding: 8px; font-size: 11px; overflow-y: auto; display: flex; flex-direction: column;
+            gap: 4px; z-index: 15; pointer-events: none;
+        }
+        .chat-msg { color: #cbd5e1; line-height: 1.35; }
+        .chat-msg b { color: #f472b6; }
+
+        #controls-guide {
+            position: absolute; top: 65px; right: 12px; width: 250px;
+            background: rgba(15, 23, 42, 0.94); border: 1px solid #334155; border-radius: 8px;
+            padding: 10px; font-size: 11px; color: #94a3b8; z-index: 15; pointer-events: none;
+        }
+        #controls-guide h4 { margin: 0 0 5px 0; color: #f59e0b; }
+
+        #crafting-modal, #settings-modal, #chest-modal {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #0f172a; border: 2px solid #475569; padding: 22px; border-radius: 10px;
+            z-index: 60; display: none; width: 500px; max-height: 85vh; overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.95);
+        }
+        #crafting-modal h3, #settings-modal h3, #chest-modal h3 { margin-top: 0; color: #f59e0b; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+        .craft-item {
+            display: flex; justify-content: space-between; align-items: center; background: #1e293b;
+            padding: 8px 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #334155; font-size: 12px;
+        }
+        .craft-item button {
+            background: #059669; color: white; border: none; padding: 6px 14px;
+            border-radius: 4px; cursor: pointer; font-family: 'Courier New'; font-weight: bold;
+        }
+        .craft-item button:hover { background: #10b981; }
+
+        #settings-btn {
+            position: absolute; top: 12px; right: 12px; background: #334155; color: white;
+            border: 1px solid #475569; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; z-index: 30;
+        }
+        .setting-row { display: flex; justify-content: space-between; margin: 12px 0; font-size: 13px; align-items: center; }
+        #cutscene-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #020617; color: #94a3b8; display: none; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 50; font-size: 18px; letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+<div id="game-wrapper">
+    <button id="settings-btn" onclick="toggleSettings()">⚙ Settings</button>
+
+    <div id="intro-screen" class="screen">
+        <h1>PIXELCRAFT ULTIMATE</h1>
+        <p>A massive, ultra-immersive 2D sandbox masterclass featuring fully authentic caves with subterranean monster spawners, rich mineral veins, glowing torches, furnished village homes with cozy interiors, cartoonish bouncy characters, highly detailed procedural mobs (Slimes, Skeletons, Spiders, Zombies), dynamic weather systems, and robust crafting mechanics.</p>
+        
+        <div class="class-grid">
+            <div class="class-card selected" onclick="selectClass(0)" id="card-0">
+                <h3>Farmer</h3>
+                <div>❤️ Max HP: 100</div>
+                <div>⚡ Stamina: 150</div>
+                <div>🌱 Rapid Crop Growth & Extra Seeds</div>
+            </div>
+            <div class="class-card" onclick="selectClass(1)" id="card-1">
+                <h3>Adventurer</h3>
+                <div>❤️ Max HP: 170</div>
+                <div>⚡ Stamina: 120</div>
+                <div>⚔️ High Sword Attack Power</div>
+            </div>
+            <div class="class-card" onclick="selectClass(2)" id="card-2">
+                <h3>Miner</h3>
+                <div>❤️ Max HP: 130</div>
+                <div>⚡ Stamina: 140</div>
+                <div>⛏️ Double Ore & Mineral Drops</div>
+            </div>
+        </div>
+
+        <button class="btn" onclick="startGame()">ENTER WORLD</button>
+    </div>
+
+    <div id="cutscene-screen">
+        <div id="cutscene-text" style="margin-bottom: 15px; font-weight: bold; color: #fbbf24;">Resting in your cozy bed...</div>
+        <div style="font-size: 12px; color: #64748b;">Morning sun breaks across the peaceful valley. All stats fully restored.</div>
+    </div>
+
+    <div id="settings-modal">
+        <h3>Game Settings & Controls</h3>
+        <div class="setting-row"><span>Time of Day</span>
+            <select id="time-select" onchange="changeTimeOfDay(this.value)" style="background:#1e293b; color:#fff; border:1px solid #475569; padding:4px; font-family:'Courier New'; border-radius:4px;">
+                <option value="morning">Morning</option>
+                <option value="noon" selected>Noon</option>
+                <option value="afternoon">Afternoon</option>
+                <option value="night">Night</option>
+            </select>
+        </div>
+        <div class="setting-row"><span>Weather Effect</span>
+            <select id="weather-select" onchange="changeWeather(this.value)" style="background:#1e293b; color:#fff; border:1px solid #475569; padding:4px; font-family:'Courier New'; border-radius:4px;">
+                <option value="clear" selected>Clear Skies</option>
+                <option value="wind">Windy Breeze</option>
+                <option value="rain">Rainfall</option>
+                <option value="thunder">Thunderstorm</option>
+                <option value="snow">Snowstorm</option>
+            </select>
+        </div>
+        <div class="setting-row"><span>Sound Effects (SFX)</span><input type="checkbox" id="sfx-toggle" checked onchange="toggleSFX()"></div>
+        <div class="setting-row"><span>Background Music (BGM)</span><input type="checkbox" id="bgm-toggle" checked onchange="toggleBGM()"></div>
+        <div class="setting-row"><span>Master Volume</span><input type="range" min="0" max="1" step="0.1" value="0.5" id="vol-slider" onchange="changeVolume(this.value)"></div>
+        <button class="btn" style="width: 100%; margin-top: 12px;" onclick="toggleSettings()">Close Settings</button>
+    </div>
+
+    <div id="crafting-modal">
+        <h3>Minecraft Crafting Table</h3>
+        <div class="craft-item">
+            <div><b>Wooden Pickaxe</b><br><span style="color:#94a3b8;">Cost: 5 Wood</span></div>
+            <button onclick="craftItem('pickaxe')">Craft</button>
+        </div>
+        <div class="craft-item">
+            <div><b>Iron Sword</b><br><span style="color:#94a3b8;">Cost: 4 Stone, 3 Wood</span></div>
+            <button onclick="craftItem('sword')">Craft</button>
+        </div>
+        <div class="craft-item">
+            <div><b>Cave Torch (Illuminates Dark Rooms)</b><br><span style="color:#94a3b8;">Cost: 2 Wood, 1 Stone</span></div>
+            <button onclick="craftItem('torch')">Craft</button>
+        </div>
+        <div class="craft-item">
+            <div><b>Furnace (Smelt Ores & Cook Food)</b><br><span style="color:#94a3b8;">Cost: 8 Stone</span></div>
+            <button onclick="craftItem('furnace')">Craft</button>
+        </div>
+        <div class="craft-item">
+            <div><b>Chest (Store Items Securely)</b><br><span style="color:#94a3b8;">Cost: 6 Wood</span></div>
+            <button onclick="craftItem('chest')">Craft</button>
+        </div>
+        <div class="craft-item">
+            <div><b>Diamond Armor Vest</b><br><span style="color:#94a3b8;">Cost: 12 Stone, 6 Gold</span></div>
+            <button onclick="craftItem('armor')">Craft</button>
+        </div>
+        <div class="craft-item">
+            <div><b>Golden Apple (Restores Full Health & Hunger)</b><br><span style="color:#94a3b8;">Cost: 4 Gold, 2 Seeds</span></div>
+            <button onclick="craftItem('gapple')">Craft</button>
+        </div>
+        <div class="craft-item">
+            <div><b>Magic Ender Pearl (Teleport Home)</b><br><span style="color:#94a3b8;">Cost: 5 Gold, 5 Seeds</span></div>
+            <button onclick="craftItem('pearl')">Craft</button>
+        </div>
+        <button class="btn" style="width: 100%; margin-top: 12px;" onclick="toggleCrafting()">Close Crafting</button>
+    </div>
+
+    <div id="chest-modal">
+        <h3>Storage Chest</h3>
+        <p>Store your valuable minerals and building supplies safely.</p>
+        <div style="display:flex; justify-content:space-around; margin:15px 0;">
+            <div>Stored Wood: <span id="chest-wood">0</span></div>
+            <div>Stored Stone: <span id="chest-stone">0</span></div>
+            <div>Stored Gold: <span id="chest-gold">0</span></div>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn" style="margin-top:0; flex:1;" onclick="depositChest()">Deposit All</button>
+            <button class="btn" style="margin-top:0; flex:1; background:#059669;" onclick="withdrawChest()">Withdraw All</button>
+        </div>
+        <button class="btn" style="width: 100%; margin-top: 15px;" onclick="toggleChest()">Close Chest</button>
+    </div>
+
+    <div id="hud-top">
+        <div style="display:flex; gap:14px;">
+            <div class="bar-container">❤️ <div class="bar-bg"><div id="hp-fill"></div></div> <span id="hp-txt">100/100</span></div>
+            <div class="bar-container">⚡ <div class="bar-bg"><div id="stamina-fill"></div></div> <span id="stamina-txt">100/100</span></div>
+            <div class="bar-container">🍗 <div class="bar-bg"><div id="hunger-fill"></div></div> <span id="hunger-txt">100/100</span></div>
+        </div>
+        <div>🪙 <span id="gold-val">50</span>G | 🪵 <span id="wood-val">0</span> | 🪨 <span id="stone-val">0</span> | 🕯️ <span id="torch-val">8</span> | 🔥 <span id="furnace-val">1</span> | 📦 <span id="chest-val">1</span> | Day <span id="day-val">1</span></div>
+    </div>
+
+    <div id="chat-panel">
+        <div class="chat-msg"><b>System:</b> Welcome to PixelCraft Masterclass. Walk into caves to explore subterranean depths, or enter village homes for cozy interiors!</div>
+        <div class="chat-msg"><b>Villager:</b> Bring torches into caves! Spiders, Skeletons, and Slimes lurk in the dark chambers.</div>
+    </div>
+
+    <div id="controls-guide">
+        <h4>Survival Controls</h4>
+        • <b>W, A, S, D / Arrows:</b> Move<br>
+        • <b>1-6:</b> Select Hotbar Tool<br>
+        • <b>Left Click:</b> Mine / Attack / Interact<br>
+        • <b>C:</b> Open Crafting Table<br>
+        • <b>E:</b> Sleep in Bed (Next Day)<br>
+        • Walk into Cave Entrances / Village Doors to Enter Interiors
+    </div>
+
+    <canvas id="gameCanvas" width="1280" height="760"></canvas>
+
+    <div id="toolbar">
+        <div class="tool-slot active" onclick="selectSlot(0)"><span>1</span>Hoe</div>
+        <div class="tool-slot" onclick="selectSlot(1)"><span>2</span>Water</div>
+        <div class="tool-slot" onclick="selectSlot(2)"><span>3</span>Seeds</div>
+        <div class="tool-slot" onclick="selectSlot(3)"><span>4</span>Pickaxe</div>
+        <div class="tool-slot" onclick="selectSlot(4)"><span>5</span>Axe</div>
+        <div class="tool-slot" onclick="selectSlot(5)"><span>6</span>Sword</div>
+        <div class="tool-slot" onclick="toggleCrafting()" style="border-color:#10b981; color:#34d399;"><span>C</span>Craft</div>
+        <div class="tool-slot" onclick="toggleChest()" style="border-color:#f59e0b; color:#fbbf24;"><span>📦</span>Chest</div>
+    </div>
+</div>
+
+<script>
+// --- MASTERCLASS AUDIO SYNTHESIZER ---
+let audioCtx = null, masterGain = null, sfxEnabled = true, bgmEnabled = true, bgmInterval = null;
+
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.5;
+        masterGain.connect(audioCtx.destination);
+    }
+}
+
+function playSound(type) {
+    if (!sfxEnabled || !audioCtx) return;
+    let osc = audioCtx.createOscillator();
+    let gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(masterGain);
+    let now = audioCtx.currentTime;
+
+    if (type === 'hit') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.linearRampToValueAtTime(45, now + 0.1);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1);
+    } else if (type === 'harvest') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(900, now + 0.12);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+        osc.start(now); osc.stop(now + 0.12);
+    } else if (type === 'sleep') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(280, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.7);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.7);
+        osc.start(now); osc.stop(now + 0.7);
+    } else if (type === 'craft') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.setValueAtTime(880, now + 0.08);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+        osc.start(now); osc.stop(now + 0.2);
+    } else if (type === 'thunder') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(65, now);
+        osc.frequency.linearRampToValueAtTime(20, now + 0.65);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.65);
+        osc.start(now); osc.stop(now + 0.65);
+    }
+}
+
+function startBGM() {
+    if (bgmInterval || !bgmEnabled) return;
+    const notes = [220, 246.94, 293.66, 329.63, 392, 329.63, 293.66, 246.94, 196, 220];
+    let index = 0;
+    bgmInterval = setInterval(() => {
+        if (!bgmEnabled || !audioCtx) return;
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = notes[index];
+        index = (index + 1) % notes.length;
+        let now = audioCtx.currentTime;
+        gain.gain.setValueAtTime(0.02, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.5);
+        osc.connect(gain); gain.connect(masterGain);
+        osc.start(now); osc.stop(now + 0.5);
+    }, 700);
+}
+function stopBGM() { if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; } }
+function toggleSFX() { sfxEnabled = document.getElementById('sfx-toggle').checked; }
+function toggleBGM() { bgmEnabled = document.getElementById('bgm-toggle').checked; if (bgmEnabled) startBGM(); else stopBGM(); }
+function changeVolume(val) { if (masterGain) masterGain.gain.value = val; }
+function toggleSettings() { let m = document.getElementById('settings-modal'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; }
+function toggleCrafting() { let m = document.getElementById('crafting-modal'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; }
+function toggleChest() { let m = document.getElementById('chest-modal'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; }
+
+// --- MASSIVE MAP & GAME CONFIG ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const TILE_SIZE = 40;
+const MAP_COLS = 260; // Expanded massive map
+const MAP_ROWS = 240;
+
+let chosenClass = 0;
+let maxHp = 100, hp = 100;
+let maxStamina = 100, stamina = 100;
+let maxHunger = 100, hunger = 100;
+let gold = 50, wood = 0, stone = 0, seedCount = 20, torchCount = 10, furnaceCount = 1, chestCount = 1, day = 1;
+let storedWood = 0, storedStone = 0, storedGold = 0;
+let selectedSlotIdx = 0;
+
+// World Dimension Tracking: 'overworld', 'cave', 'interior'
+let currentDimension = 'overworld';
+let activeCaveIndex = 0;
+let activeInteriorIndex = 0;
+
+let timeOfDay = 'noon';
+let currentWeather = 'clear';
+
+let player = {
+    x: (MAP_COLS / 2) * TILE_SIZE,
+    y: (MAP_ROWS / 2) * TILE_SIZE,
+    speed: 3.8,
+    dir: 'down',
+    moving: false,
+    anim: 0
+};
+
+let keys = {};
+let terrainGrid = Array(MAP_ROWS).fill(0).map(() => Array(MAP_COLS).fill(0));
+let cropGrid = Array(MAP_ROWS).fill(0).map(() => Array(MAP_COLS).fill(0));
+let objGrid = Array(MAP_ROWS).fill(0).map(() => Array(MAP_COLS).fill(0)); // 1: Tree, 2: Rock, 3: Iron, 4: Diamond
+
+// World Structures
+let villages = [];
+let caveEntrances = [];
+let caveMaps = [];
+let villageInteriors = [];
+let torchesPlaced = []; // {dimension, index, x, y}
+
+let villagers = [
+    { name: "Villager Joe", x: player.x - 140, y: player.y - 100, speech: "Explore the dark caves underground for rich iron and diamond ore!" },
+    { name: "Blacksmith Bob", x: player.x + 180, y: player.y - 80, speech: "Enter village homes to rest or inspect cozy furnished interiors." },
+    { name: "Farmer Sue", x: player.x - 200, y: player.y + 160, speech: "Keep your hunger bar full by farming wheat and eating delicious food." },
+    { name: "Explorer Alex", x: player.x + 240, y: player.y + 140, speech: "Watch out for Slimes, Skeletons, and Spiders lurking in dungeons!" }
+];
+
+let enemies = [];
+let weatherParticles = [];
+let homeBed = { x: (MAP_COLS / 2 - 3) * TILE_SIZE, y: (MAP_ROWS / 2) * TILE_SIZE };
+
+function selectClass(idx) {
+    chosenClass = idx;
+    document.querySelectorAll('.class-card').forEach((c, i) => c.classList.toggle('selected', i === idx));
+}
+
+function startGame() {
+    initAudio();
+    if (bgmEnabled) startBGM();
+    if (chosenClass === 0) { maxStamina = 150; seedCount = 28; }
+    else if (chosenClass === 1) { maxHp = 170; hp = 170; }
+    else if (chosenClass === 2) { maxStamina = 140; stone = 18; }
+    stamina = maxStamina;
+    hunger = maxHunger;
+
+    document.getElementById('intro-screen').style.display = 'none';
+    generateWorld();
+    updateUI();
+    setInterval(npcChatTicker, 9000);
+    setInterval(weatherTicker, 15000);
+    setInterval(hungerTicker, 12000);
+}
+
+function generateWorld() {
+    // Generate Villages and corresponding Interiors
+    for (let i = 0; i < 10; i++) {
+        let vx = Math.floor(Math.random() * (MAP_COLS - 60) + 30) * TILE_SIZE;
+        let vy = Math.floor(Math.random() * (MAP_ROWS - 60) + 30) * TILE_SIZE;
+        villages.push({ id: i, x: vx, y: vy });
+        villageInteriors.push(generateFurnishedInterior(i));
+    }
+
+    // Generate Cave Entrances and corresponding Cave Maps
+    for (let i = 0; i < 8; i++) {
+        let cx = Math.floor(Math.random() * (MAP_COLS - 50) + 25) * TILE_SIZE;
+        let cy = Math.floor(Math.random() * (MAP_ROWS - 50) + 25) * TILE_SIZE;
+        caveEntrances.push({ id: i, x: cx, y: cy });
+        caveMaps.push(generateDeepCave(i));
+    }
+
+    // Populate Overworld Resources (Trees, Rocks, Ores)
+    for (let r = 0; r < MAP_ROWS; r++) {
+        for (let c = 0; c < MAP_COLS; c++) {
+            let px = c * TILE_SIZE, py = r * TILE_SIZE;
+            if (Math.hypot(px - player.x, py - player.y) > 240) {
+                let rnd = Math.random();
+                if (rnd < 0.085) objGrid[r][c] = 1; // Tree
+                else if (rnd < 0.13) objGrid[r][c] = 2; // Rock
+                else if (rnd < 0.155) objGrid[r][c] = 3; // Iron Ore
+                else if (rnd < 0.168) objGrid[r][c] = 4; // Diamond Ore
+            }
+        }
+    }
+
+    // Spawn Overworld Mobs (Zombies)
+    for (let i = 0; i < 40; i++) {
+        enemies.push({
+            x: (Math.random() * (MAP_COLS - 20) + 10) * TILE_SIZE,
+            y: (Math.random() * (MAP_ROWS - 20) + 10) * TILE_SIZE,
+            hp: 6, speed: 1.4, type: 'zombie', dimension: 'overworld', index: 0, anim: Math.random() * Math.PI
+        });
+    }
+
+    // Weather Particles
+    for (let i = 0; i < 160; i++) {
+        weatherParticles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            speedY: Math.random() * 6 + 4,
+            speedX: Math.random() * 2 - 1,
+            len: Math.random() * 16 + 10
+        });
+    }
+}
+
+// Generate an authentic furnished village home interior
+function generateFurnishedInterior(id) {
+    const width = 24;
+    const height = 18;
+    let grid = Array(height).fill(0).map(() => Array(width).fill(0));
+    
+    // Walls and floor layout
+    for (let r = 0; r < height; r++) {
+        for (let c = 0; c < width; c++) {
+            if (r === 0 || r === height - 1 || c === 0 || c === width - 1) {
+                grid[r][c] = 1; // Wall
+            }
+        }
+    }
+    // Doorway at bottom center
+    grid[height - 1][Math.floor(width / 2)] = 0;
+    grid[height - 1][Math.floor(width / 2) + 1] = 0;
+
+    return {
+        id: id,
+        width: width,
+        height: height,
+        grid: grid,
+        spawnX: (Math.floor(width / 2)) * TILE_SIZE,
+        spawnY: (height - 3) * TILE_SIZE,
+        furniture: [
+            { type: 'bed', x: 3 * TILE_SIZE, y: 3 * TILE_SIZE },
+            { type: 'chest', x: 18 * TILE_SIZE, y: 3 * TILE_SIZE },
+            { type: 'table', x: 10 * TILE_SIZE, y: 8 * TILE_SIZE },
+            { type: 'bookshelf', x: 3 * TILE_SIZE, y: 12 * TILE_SIZE },
+            { type: 'furnace', x: 18 * TILE_SIZE, y: 12 * TILE_SIZE }
+        ]
+    };
+}
+
+// Generate authentic subterranean cave with stone walls, rich mineral veins, and detailed monster spawners
+function generateDeepCave(id) {
+    const width = 55;
+    const height = 55;
+    let grid = Array(height).fill(0).map(() => Array(width).fill(1)); // 1: Solid Stone Wall, 0: Cave Floor
+
+    // Indestructible border walls
+    for (let r = 0; r < height; r++) {
+        for (let c = 0; c < width; c++) {
+            if (r === 0 || r === height - 1 || c === 0 || c === width - 1) {
+                grid[r][c] = 1;
+            }
+        }
+    }
+
+    // Carve spacious cavern rooms
+    let rooms = [
+        {x: 6, y: 6, w: 14, h: 12},
+        {x: 24, y: 8, w: 16, h: 15},
+        {x: 38, y: 24, w: 12, h: 16},
+        {x: 10, y: 26, w: 18, h: 16},
+        {x: 20, y: 40, w: 22, h: 12}
+    ];
+
+    rooms.forEach(room => {
+        for (let r = room.y; r < room.y + room.h; r++) {
+            for (let c = room.x; c < room.x + room.w; c++) {
+                if (r > 0 && r < height - 1 && c > 0 && c < width - 1) {
+                    grid[r][c] = 0;
+                }
+            }
+        }
+    });
+
+    // Carve connecting tunnels
+    for (let i = 0; i < rooms.length - 1; i++) {
+        let x1 = Math.floor(rooms[i].x + rooms[i].w / 2);
+        let y1 = Math.floor(rooms[i].y + rooms[i].h / 2);
+        let x2 = Math.floor(rooms[i+1].x + rooms[i+1].w / 2);
+        let y2 = Math.floor(rooms[i+1].y + rooms[i+1].h / 2);
+
+        let cx = x1;
+        while (cx !== x2) { grid[y1][cx] = 0; cx += (x2 > cx ? 1 : -1); }
+        let cy = y1;
+        while (cy !== y2) { grid[cy][x2] = 0; cy += (y2 > cy ? 1 : -1); }
+    }
+
+    // Populate subterranean ores
+    let ores = [];
+    for (let r = 2; r < height - 2; r++) {
+        for (let c = 2; c < width - 2; c++) {
+            if (grid[r][c] === 0 && Math.random() < 0.075) {
+                ores.push({ x: c, y: r, type: Math.random() < 0.65 ? 'iron' : 'diamond', mined: false });
+            }
+        }
+    }
+
+    // Populate authentic subterranean mobs (Slimes, Skeletons, Spiders)
+    let caveMobs = [];
+    const mobTypes = ['slime', 'skeleton', 'spider'];
+    for (let i = 0; i < 9; i++) {
+        let rm = rooms[Math.floor(Math.random() * rooms.length)];
+        let mType = mobTypes[Math.floor(Math.random() * mobTypes.length)];
+        caveMobs.push({
+            x: (rm.x + 2) * TILE_SIZE,
+            y: (rm.y + 2) * TILE_SIZE,
+            hp: mType === 'slime' ? 10 : 8,
+            speed: mType === 'slime' ? 1.8 : 1.3,
+            type: mType,
+            dimension: 'cave',
+            index: id,
+            anim: Math.random() * Math.PI
+        });
+    }
+
+    return {
+        id: id,
+        width: width,
+        height: height,
+        grid: grid,
+        ores: ores,
+        mobs: caveMobs,
+        spawnX: (rooms[0].x + 2) * TILE_SIZE,
+        spawnY: (rooms[0].y + 2) * TILE_SIZE
+    };
+}
+
+const chatLines = [
+    "Caves feature authentic dark stone chambers, rich mineral veins, and dangerous mobs.",
+    "Village homes have fully furnished interiors with cozy beds, chests, and bookshelves.",
+    "Keep your hunger bar full so your health regenerates smoothly.",
+    "Craft elite diamond armor and cave torches at your crafting table.",
+    "Watch out for bouncy Slimes, archer Skeletons, and creeping Spiders!"
+];
+
+function npcChatTicker() {
+    let randVillager = villagers[Math.floor(Math.random() * villagers.length)];
+    let randText = chatLines[Math.floor(Math.random() * chatLines.length)];
+    let panel = document.getElementById('chat-panel');
+    let div = document.createElement('div');
+    div.className = 'chat-msg';
+    div.innerHTML = `<b>${randVillager.name}:</b> ${randText}`;
+    panel.appendChild(div);
+    panel.scrollTop = panel.scrollHeight;
+    if (panel.children.length > 9) panel.removeChild(panel.children[0]);
+}
+
+function weatherTicker() {
+    if (Math.random() < 0.35 && currentDimension === 'overworld') {
+        const weathers = ['clear', 'wind', 'rain', 'thunder', 'snow'];
+        currentWeather = weathers[Math.floor(Math.random() * weathers.length)];
+        document.getElementById('weather-select').value = currentWeather;
+        if (currentWeather === 'thunder') playSound('thunder');
+    }
+}
+
+function hungerTicker() {
+    if (hunger > 0) {
+        hunger = Math.max(0, hunger - 2);
+    } else {
+        hp = Math.max(0, hp - 4);
+    }
+    updateUI();
+}
+
+window.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key >= '1' && e.key <= '6') selectSlot(parseInt(e.key) - 1);
+    if (e.key.toLowerCase() === 'c') toggleCrafting();
+    if (e.key.toLowerCase() === 'e') sleepInBed();
+});
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+function selectSlot(idx) {
+    selectedSlotIdx = idx;
+    document.querySelectorAll('.tool-slot').forEach((s, i) => s.classList.toggle('active', i === idx));
+}
+
+function changeTimeOfDay(val) { timeOfDay = val; }
+function changeWeather(val) { currentWeather = val; }
+
+function craftItem(item) {
+    playSound('craft');
+    if (item === 'pickaxe' && wood >= 5) {
+        wood -= 5; stone += 2; alert("Crafted Wooden Pickaxe!");
+    } else if (item === 'sword' && stone >= 4 && wood >= 3) {
+        stone -= 4; wood -= 3; alert("Crafted Iron Sword!");
+    } else if (item === 'torch' && wood >= 2 && stone >= 1) {
+        wood -= 2; stone -= 1; torchCount += 8; alert("Crafted 8 Cave Torches!");
+    } else if (item === 'furnace' && stone >= 8) {
+        stone -= 8; furnaceCount++; alert("Crafted Stone Furnace!");
+    } else if (item === 'chest' && wood >= 6) {
+        wood -= 6; chestCount++; alert("Crafted Storage Chest!");
+    } else if (item === 'armor' && stone >= 12 && gold >= 6) {
+        stone -= 12; gold -= 6; maxHp += 50; hp += 50; alert("Forged Diamond Armor Vest!");
+    } else if (item === 'gapple' && gold >= 4 && seedCount >= 2) {
+        gold -= 4; seedCount -= 2; hp = maxHp; hunger = maxHunger; alert("Crafted Golden Apple!");
+    } else if (item === 'pearl' && gold >= 5 && seedCount >= 5) {
+        gold -= 5; seedCount -= 5; currentDimension = 'overworld'; player.x = (MAP_COLS / 2) * TILE_SIZE; player.y = (MAP_ROWS / 2) * TILE_SIZE; alert("Teleported home with Ender Pearl!");
+    } else {
+        alert("Insufficient materials to craft this item!");
+    }
+    updateUI();
+    toggleCrafting();
+}
+
+function depositChest() {
+    storedWood += wood; wood = 0;
+    storedStone += stone; stone = 0;
+    storedGold += gold; gold = 0;
+    updateChestUI();
+    updateUI();
+}
+
+function withdrawChest() {
+    wood += storedWood; storedWood = 0;
+    stone += storedStone; storedStone = 0;
+    gold += storedGold; storedGold = 0;
+    updateChestUI();
+    updateUI();
+}
+
+function updateChestUI() {
+    document.getElementById('chest-wood').innerText = storedWood;
+    document.getElementById('chest-stone').innerText = storedStone;
+    document.getElementById('chest-gold').innerText = storedGold;
+}
+
+canvas.addEventListener('click', e => {
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    const camX = player.x - canvas.width / 2;
+    const camY = player.y - canvas.height / 2;
+    const worldX = clickX + camX;
+    const worldY = clickY + camY;
+    const tileX = Math.floor(worldX / TILE_SIZE);
+    const tileY = Math.floor(worldY / TILE_SIZE);
+
+    if (Math.hypot(tileX - Math.floor(player.x/TILE_SIZE), tileY - Math.floor(player.y/TILE_SIZE)) <= 3.2) {
+        if (stamina < 3) return;
+        let tool = ['hoe', 'water', 'seeds', 'pickaxe', 'axe', 'sword'][selectedSlotIdx];
+
+        if (currentDimension === 'cave') {
+            let cave = caveMaps[activeCaveIndex];
+            // Place Torch
+            if (tool === 'pickaxe' && torchCount > 0) {
+                torchCount--;
+                torchesPlaced.push({dimension: 'cave', index: activeCaveIndex, x: worldX, y: worldY});
+                playSound('harvest');
+            }
+            // Mine Ores
+            cave.ores.forEach(o => {
+                if (!o.mined && Math.abs(o.x - tileX) <= 1 && Math.abs(o.y - tileY) <= 1) {
+                    o.mined = true;
+                    stone += 6;
+                    if (o.type === 'iron') gold += 30;
+                    else { gold += 90; seedCount += 4; }
+                    playSound('hit');
+                }
+            });
+        } else if (currentDimension === 'interior') {
+            // Interact with indoor chest or bed
+            let interior = villageInteriors[activeInteriorIndex];
+            interior.furniture.forEach(f => {
+                if (Math.hypot(f.x - worldX, f.y - worldY) < 40) {
+                    if (f.type === 'chest') toggleChest();
+                    if (f.type === 'bed') sleepInBed();
+                }
+            });
+        } else {
+            // Overworld interaction
+            if (tileX < 0 || tileX >= MAP_COLS || tileY < 0 || tileY >= MAP_ROWS) return;
+            if (tool === 'hoe' && terrainGrid[tileY][tileX] === 0 && objGrid[tileY][tileX] === 0) {
+                terrainGrid[tileY][tileX] = 1; stamina -= 2; playSound('hit');
+            } else if (tool === 'water' && terrainGrid[tileY][tileX] === 1) {
+                terrainGrid[tileY][tileX] = 2; stamina -= 1; playSound('hit');
+            } else if (tool === 'seeds' && terrainGrid[tileY][tileX] === 2 && cropGrid[tileY][tileX] === 0) {
+                if (seedCount > 0) { seedCount--; cropGrid[tileY][tileX] = 1; stamina -= 1; playSound('harvest'); }
+            } else if (tool === 'axe' && objGrid[tileY][tileX] === 1) {
+                objGrid[tileY][tileX] = 0; wood += 6; gold += 5; stamina -= 2; playSound('hit');
+            } else if (tool === 'pickaxe' && (objGrid[tileY][tileX] === 2 || objGrid[tileY][tileX] === 3 || objGrid[tileY][tileX] === 4)) {
+                let isDiamond = objGrid[tileY][tileX] === 4;
+                let isIron = objGrid[tileY][tileX] === 3;
+                objGrid[tileY][tileX] = 0;
+                stone += (chosenClass === 2 ? 8 : 4);
+                if (isIron) gold += 20;
+                if (isDiamond) { gold += 70; seedCount += 4; }
+                stamina -= 2; playSound('hit');
+            } else if (tool === 'sword') {
+                enemies.forEach((en, idx) => {
+                    if (en.dimension === 'overworld' && Math.hypot(en.x - worldX, en.y - worldY) < 55) {
+                        en.hp -= (chosenClass === 1 ? 4 : 3);
+                        playSound('hit');
+                        if (en.hp <= 0) { enemies.splice(idx, 1); gold += 35; seedCount += 3; hunger = Math.min(maxHunger, hunger + 15); }
+                    }
+                });
+                stamina -= 2;
+            }
+        }
+        updateUI();
+    }
+});
+
+function sleepInBed() {
+    let distBed = Math.hypot(player.x - homeBed.x, player.y - homeBed.y);
+    if (currentDimension === 'overworld' && distBed < 70 || currentDimension === 'interior') {
+        playSound('sleep');
+        let cutscene = document.getElementById('cutscene-screen');
+        cutscene.style.display = 'flex';
+        setTimeout(() => {
+            day++;
+            hp = maxHp;
+            stamina = maxStamina;
+            hunger = maxHunger;
+            cutscene.style.display = 'none';
+            updateUI();
+        }, 1600);
+    }
+}
+
+function updateUI() {
+    document.getElementById('hp-fill').style.width = (hp / maxHp * 100) + '%';
+    document.getElementById('hp-txt').innerText = `${hp}/${maxHp}`;
+    document.getElementById('stamina-fill').style.width = (stamina / maxStamina * 100) + '%';
+    document.getElementById('stamina-txt').innerText = `${stamina}/${maxStamina}`;
+    document.getElementById('hunger-fill').style.width = (hunger / maxHunger * 100) + '%';
+    document.getElementById('hunger-txt').innerText = `${hunger}/${maxHunger}`;
+    document.getElementById('gold-val').innerText = gold;
+    document.getElementById('wood-val').innerText = wood;
+    document.getElementById('stone-val').innerText = stone;
+    document.getElementById('torch-val').innerText = torchCount;
+    document.getElementById('furnace-val').innerText = furnaceCount;
+    document.getElementById('chest-val').innerText = chestCount;
+    document.getElementById('day-val').innerText = day;
+}
+
+function update() {
+    let dx = 0, dy = 0;
+    if (keys['w'] || keys['arrowup']) { dy = -1; player.dir = 'up'; }
+    if (keys['s'] || keys['arrowdown']) { dy = 1; player.dir = 'down'; }
+    if (keys['a'] || keys['arrowleft']) { dx = -1; player.dir = 'left'; }
+    if (keys['d'] || keys['arrowright']) { dx = 1; player.dir = 'right'; }
+
+    if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+    
+    if (currentDimension === 'cave') {
+        let cave = caveMaps[activeCaveIndex];
+        let nextX = player.x + dx * player.speed;
+        let nextY = player.y + dy * player.speed;
+        let tX = Math.floor(nextX / TILE_SIZE);
+        let tY = Math.floor(nextY / TILE_SIZE);
+
+        if (tX >= 0 && tX < cave.width && tY >= 0 && tY < cave.height && cave.grid[tY][tX] === 0) {
+            player.x = nextX; player.y = nextY;
+            player.moving = (dx !== 0 || dy !== 0);
+            if (player.moving) player.anim += 0.25;
+        } else {
+            player.moving = false;
+        }
+
+        // Exit cave portal at spawn room
+        if (Math.hypot(player.x - cave.spawnX, player.y - cave.spawnY) < 45) {
+            currentDimension = 'overworld';
+            let ent = caveEntrances[activeCaveIndex];
+            player.x = ent.x + 70;
+            player.y = ent.y + 20;
+        }
+
+    } else if (currentDimension === 'interior') {
+        let interior = villageInteriors[activeInteriorIndex];
+        let nextX = player.x + dx * player.speed;
+        let nextY = player.y + dy * player.speed;
+        let tX = Math.floor(nextX / TILE_SIZE);
+        let tY = Math.floor(nextY / TILE_SIZE);
+
+        if (tX >= 0 && tX < interior.width && tY >= 0 && tY < interior.height && interior.grid[tY][tX] === 0) {
+            player.x = nextX; player.y = nextY;
+            player.moving = (dx !== 0 || dy !== 0);
+            if (player.moving) player.anim += 0.25;
+        } else {
+            player.moving = false;
+        }
+
+        // Exit interior door at bottom center
+        if (tY >= interior.height - 2) {
+            currentDimension = 'overworld';
+            let vil = villages[activeInteriorIndex];
+            player.x = vil.x + 40;
+            player.y = vil.y + 80;
+        }
+
+    } else {
+        // Overworld movement
+        if (dx !== 0 || dy !== 0) {
+            player.x += dx * player.speed;
+            player.y += dy * player.speed;
+            player.moving = true;
+            player.anim += 0.25;
+        } else {
+            player.moving = false;
+        }
+
+        // Check Cave Entrances
+        caveEntrances.forEach(ce => {
+            if (Math.hypot(player.x - ce.x, player.y - ce.y) < 45) {
+                currentDimension = 'cave';
+                activeCaveIndex = ce.id;
+                let cave = caveMaps[ce.id];
+                player.x = cave.spawnX;
+                player.y = cave.spawnY;
+            }
+        });
+
+        // Check Village Interiors
+        villages.forEach(v => {
+            if (Math.hypot(player.x - (v.x + 40), player.y - (v.y + 30)) < 45) {
+                currentDimension = 'interior';
+                activeInteriorIndex = v.id;
+                let interior = villageInteriors[v.id];
+                player.x = interior.spawnX;
+                player.y = interior.spawnY;
+            }
+        });
+    }
+
+    // Weather particles
+    if (currentWeather !== 'clear' && currentDimension === 'overworld') {
+        weatherParticles.forEach(p => {
+            p.y += p.speedY;
+            p.x += (currentWeather === 'wind' ? 5 : p.speedX);
+            if (p.y > canvas.height) { p.y = -20; p.x = Math.random() * canvas.width; }
+            if (p.x > canvas.width) p.x = 0;
+            if (p.x < 0) p.x = canvas.width;
+        });
+    }
+
+    // Overworld Mobs AI
+    enemies.forEach(en => {
+        if (en.dimension === 'overworld' && currentDimension === 'overworld') {
+            let dist = Math.hypot(player.x - en.x, player.y - en.y);
+            if (dist < 250) {
+                let ang = Math.atan2(player.y - en.y, player.x - en.x);
+                en.x += Math.cos(ang) * en.speed;
+                en.y += Math.sin(ang) * en.speed;
+                en.anim += 0.2;
+            }
+            if (dist < 32 && Math.random() < 0.15) {
+                hp = Math.max(0, hp - 8);
+                updateUI();
+            }
+        }
+    });
+
+    // Subterranean Cave Mobs AI (Slimes, Skeletons, Spiders)
+    if (currentDimension === 'cave') {
+        let cave = caveMaps[activeCaveIndex];
+        cave.mobs.forEach(cm => {
+            let dist = Math.hypot(player.x - cm.x, player.y - cm.y);
+            if (dist < 260) {
+                let ang = Math.atan2(player.y - cm.y, player.x - cm.x);
+                let nx = cm.x + Math.cos(ang) * cm.speed;
+                let ny = cm.y + Math.sin(ang) * cm.speed;
+                let cX = Math.floor(nx / TILE_SIZE);
+                let cY = Math.floor(ny / TILE_SIZE);
+                if (cX >= 0 && cX < cave.width && cY >= 0 && cY < cave.height && cave.grid[cY][cX] === 0) {
+                    cm.x = nx; cm.y = ny;
+                    cm.anim += 0.25;
+                }
+            }
+            if (dist < 32 && Math.random() < 0.15) {
+                hp = Math.max(0, hp - 12);
+                updateUI();
+            }
+        });
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const camX = player.x - canvas.width / 2;
+    const camY = player.y - canvas.height / 2;
+
+    ctx.save();
+    ctx.translate(-camX, -camY);
+
+    if (currentDimension === 'cave') {
+        // --- RENDER AUTHENTIC SUBTERRANEAN CAVE ---
+        let cave = caveMaps[activeCaveIndex];
+        for (let r = 0; r < cave.height; r++) {
+            for (let c = 0; c < cave.width; c++) {
+                let x = c * TILE_SIZE, y = r * TILE_SIZE;
+                if (x + TILE_SIZE < camX || x > camX + canvas.width || y + TILE_SIZE < camY || y > camY + canvas.height) continue;
+
+                ctx.fillStyle = cave.grid[r][c] === 1 ? '#090d16' : '#1e293b';
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                ctx.strokeStyle = '#020617';
+                ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+            }
+        }
+
+        // Draw Ores
+        cave.ores.forEach(o => {
+            if (!o.mined) {
+                ctx.fillStyle = o.type === 'iron' ? '#f97316' : '#38bdf8';
+                ctx.fillRect(o.x * TILE_SIZE + 10, o.y * TILE_SIZE + 10, 20, 20);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(o.x * TILE_SIZE + 15, o.y * TILE_SIZE + 15, 8, 8);
+            }
+        });
+
+        // Draw Subterranean Cartoonish Mobs (Slimes, Skeletons, Spiders)
+        cave.mobs.forEach(cm => {
+            ctx.save();
+            ctx.translate(cm.x, cm.y);
+            let bounce = Math.sin(cm.anim) * 4;
+            if (cm.type === 'slime') {
+                ctx.fillStyle = 'rgba(34, 197, 94, 0.85)';
+                ctx.beginPath(); ctx.arc(0, bounce, 16, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-6, -4 + bounce, 4, 4); ctx.fillRect(2, -4 + bounce, 4, 4);
+            } else if (cm.type === 'skeleton') {
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillRect(-6, -14 + bounce, 12, 20);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(-4, -12 + bounce, 3, 3); ctx.fillRect(1, -12 + bounce, 3, 3);
+            } else { // Spider
+                ctx.fillStyle = '#1e1b4b';
+                ctx.beginPath(); ctx.arc(0, bounce, 14, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(-5, -4 + bounce, 3, 3); ctx.fillRect(2, -4 + bounce, 3, 3);
+            }
+            ctx.restore();
+        });
+
+    } else if (currentDimension === 'interior') {
+        // --- RENDER FURNISHED VILLAGE HOME INTERIOR ---
+        let interior = villageInteriors[activeInteriorIndex];
+        for (let r = 0; r < interior.height; r++) {
+            for (let c = 0; c < interior.width; c++) {
+                let x = c * TILE_SIZE, y = r * TILE_SIZE;
+                ctx.fillStyle = interior.grid[r][c] === 1 ? '#334155' : '#78350f';
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                ctx.strokeStyle = '#475569';
+                ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+            }
+        }
+
+        // Draw Furniture
+        interior.furniture.forEach(f => {
+            if (f.type === 'bed') {
+                ctx.fillStyle = '#dc2626'; ctx.fillRect(f.x, f.y, 60, 40);
+                ctx.fillStyle = '#fef08a'; ctx.fillRect(f.x + 8, f.y + 6, 20, 28);
+            } else if (f.type === 'chest') {
+                ctx.fillStyle = '#b45309'; ctx.fillRect(f.x, f.y, 40, 36);
+                ctx.fillStyle = '#f59e0b'; ctx.fillRect(f.x + 14, f.y + 12, 12, 10);
+            } else if (f.type === 'table') {
+                ctx.fillStyle = '#78350f'; ctx.fillRect(f.x, f.y, 80, 50);
+            } else if (f.type === 'bookshelf') {
+                ctx.fillStyle = '#451a03'; ctx.fillRect(f.x, f.y, 50, 60);
+                ctx.fillStyle = '#38bdf8'; ctx.fillRect(f.x + 6, f.y + 8, 10, 16);
+                ctx.fillStyle = '#f43f5e'; ctx.fillRect(f.x + 22, f.y + 8, 10, 16);
+            } else if (f.type === 'furnace') {
+                ctx.fillStyle = '#475569'; ctx.fillRect(f.x, f.y, 40, 40);
+                ctx.fillStyle = '#f97316'; ctx.fillRect(f.x + 10, f.y + 18, 20, 16);
+            }
+        });
+
+    } else {
+        // --- RENDER MASSIVE OVERWORLD ---
+        for (let r = 0; r < MAP_ROWS; r++) {
+            for (let c = 0; c < MAP_COLS; c++) {
+                let x = c * TILE_SIZE, y = r * TILE_SIZE;
+                if (x + TILE_SIZE < camX || x > camX + canvas.width || y + TILE_SIZE < camY || y > camY + canvas.height) continue;
+
+                ctx.fillStyle = ((r + c) % 2 === 0) ? '#166534' : '#15803d';
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+
+                if (terrainGrid[r][c] === 1) { ctx.fillStyle = '#5c4033'; ctx.fillRect(x+2, y+2, TILE_SIZE-4, TILE_SIZE-4); }
+                else if (terrainGrid[r][c] === 2) { ctx.fillStyle = '#2563eb'; ctx.fillRect(x+2, y+2, TILE_SIZE-4, TILE_SIZE-4); }
+
+                if (cropGrid[r][c] === 1) { ctx.fillStyle = '#84cc16'; ctx.fillRect(x+12, y+12, 16, 16); }
+
+                if (objGrid[r][c] === 1) {
+                    ctx.fillStyle = '#3d2817'; ctx.fillRect(x+15, y+20, 10, 18);
+                    ctx.fillStyle = '#14532d'; ctx.beginPath(); ctx.arc(x+20, y+14, 18, 0, Math.PI*2); ctx.fill();
+                } else if (objGrid[r][c] === 2) {
+                    ctx.fillStyle = '#475569'; ctx.fillRect(x+5, y+8, 30, 24);
+                } else if (objGrid[r][c] === 3) {
+                    ctx.fillStyle = '#475569'; ctx.fillRect(x+5, y+8, 30, 24);
+                    ctx.fillStyle = '#f97316'; ctx.fillRect(x+11, y+13, 9, 9);
+                } else if (objGrid[r][c] === 4) {
+                    ctx.fillStyle = '#334155'; ctx.fillRect(x+5, y+8, 30, 24);
+                    ctx.fillStyle = '#38bdf8'; ctx.fillRect(x+12, y+14, 9, 9);
+                }
+                ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+                ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+            }
+        }
+
+        // Draw Villages & Homes
+        villages.forEach(v => {
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(v.x, v.y, 80, 60);
+            ctx.fillStyle = '#b91c1c';
+            ctx.beginPath(); ctx.moveTo(v.x - 8, v.y); ctx.lineTo(v.x + 40, v.y - 35); ctx.lineTo(v.x + 88, v.y); ctx.fill();
+            ctx.fillStyle = '#451a03';
+            ctx.fillRect(v.x + 28, v.y + 26, 24, 34); // Doorway to interior
+            ctx.fillStyle = '#fef08a';
+            ctx.font = '10px Courier New';
+            ctx.fillText("HOME", v.x + 26, v.y - 10);
+        });
+
+        // Draw Cave Entrances
+        caveEntrances.forEach(ce => {
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(ce.x, ce.y, 52, 52);
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = '11px Courier New';
+            ctx.fillText("CAVE", ce.x + 11, ce.y + 30);
+        });
+
+        // Draw Bed & Villagers
+        ctx.fillStyle = '#dc2626';
+        ctx.fillRect(homeBed.x, homeBed.y, 40, 28);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '10px Courier New';
+        ctx.fillText("[E] BED", homeBed.x + 2, homeBed.y - 6);
+
+        villagers.forEach(vi => {
+            ctx.fillStyle = '#2563eb';
+            ctx.fillRect(vi.x, vi.y, 22, 28);
+            ctx.fillStyle = '#fef08a';
+            ctx.fillRect(vi.x + 3, vi.y - 11, 16, 12);
+        });
+
+        // Draw Overworld Mobs (Zombies)
+        enemies.forEach(en => {
+            if (en.dimension === 'overworld') {
+                ctx.save();
+                ctx.translate(en.x, en.y);
+                let bounce = Math.sin(en.anim) * 3;
+                ctx.fillStyle = '#15803d';
+                ctx.fillRect(-7, -11 + bounce, 14, 24);
+                ctx.fillStyle = '#86efac';
+                ctx.fillRect(-6, -19 + bounce, 12, 10);
+                ctx.restore();
+            }
+        });
+    }
+
+    // --- CARTOONISH BOUNCY PLAYER AVATAR ---
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.beginPath(); ctx.ellipse(0, 18, 12, 4, 0, 0, Math.PI*2); ctx.fill();
+
+    let bounce = player.moving ? Math.sin(player.anim) * 4 : 0;
+    ctx.fillStyle = '#0ea5e9'; // Stylish Cartoon Shirt
+    ctx.fillRect(-9, -6 + bounce, 18, 20);
+    ctx.fillStyle = '#ffedd5'; // Bouncy Head
+    ctx.beginPath(); ctx.arc(0, -14 + bounce, 11, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#b45309'; // Hair
+    ctx.fillRect(-9, -24 + bounce, 18, 7);
+    ctx.fillStyle = '#0f172a'; // Eyes
+    ctx.fillRect(-4, -16 + bounce, 3, 3);
+    ctx.fillRect(2, -16 + bounce, 3, 3);
+    ctx.restore();
+
+    ctx.restore();
+
+    // --- IMMERSIVE LIGHTING & WEATHER OVERLAYS ---
+    ctx.save();
+    if (currentDimension === 'cave') {
+        ctx.fillStyle = 'rgba(2, 6, 23, 0.97)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        let grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 20, canvas.width/2, canvas.height/2, 190);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(2, 6, 23, 0.98)');
+        ctx.fillStyle = grad;
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Render Torches Placed
+        torchesPlaced.forEach(t => {
+            if (t.dimension === 'cave' && t.index === activeCaveIndex) {
+                let sX = t.x - camX;
+                let sY = t.y - camY;
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath(); ctx.arc(sX, sY, 6, 0, Math.PI*2); ctx.fill();
+
+                let tGrad = ctx.createRadialGradient(sX, sY, 10, sX, sY, 150);
+                tGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                tGrad.addColorStop(1, 'rgba(2, 6, 23, 0.95)');
+                ctx.fillStyle = tGrad;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        });
+        ctx.globalCompositeOperation = 'source-over';
+    } else {
+        if (timeOfDay === 'morning') {
+            ctx.fillStyle = 'rgba(251, 191, 36, 0.12)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        } else if (timeOfDay === 'afternoon') {
+            ctx.fillStyle = 'rgba(249, 115, 22, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        } else if (timeOfDay === 'night') {
+            ctx.fillStyle = 'rgba(2, 6, 23, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        if (currentWeather === 'rain' || currentWeather === 'thunder') {
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.65)';
+            ctx.lineWidth = 1.5;
+            weatherParticles.forEach(p => {
+                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + p.speedX, p.y + p.len); ctx.stroke();
+            });
+            if (currentWeather === 'thunder' && Math.random() < 0.015) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        } else if (currentWeather === 'snow') {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            weatherParticles.forEach(p => {
+                ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill();
+            });
+        }
+    }
+    ctx.restore();
+}
+
+function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
